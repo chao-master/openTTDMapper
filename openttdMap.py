@@ -13,11 +13,15 @@ class OpenTTDFileParser():
         self.version = None
         self.chunks = []
         self._readHeaders()
-        try:
-            self._readAllChunks()
-        except:
-            traceback.print_exc()
-    
+        if self.header == 'OTTN':
+            try:
+                self._readAllChunks()
+            except:
+                traceback.print_exc()
+        else:
+            print 'Unsupported save encryption'
+            sys.exit()
+
     def _readHeaders(self):
         self.header = self.filePt.read(4)
         self.version = struct.unpack(">HH",self.filePt.read(4))
