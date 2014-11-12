@@ -1,5 +1,6 @@
+OpenTTD Mapper
 
-Todo:
+TODO:
 * Find Icons for Industry
 	* COALMINE ✓ icon/mine.png
 	* OILRIG ✓ icon/oilrig.png
@@ -11,7 +12,6 @@ Todo:
 	* BUBBLECATCHER ✓ icon/factory.png
 	* TOFFEEQUARRY ✓ icon/mine.png
 	* SUGARMINESIEVE ✓ icon/mine.png
-
 * Discover what all of the chunks represent
 * Optimise the colors for simple output
 * Extract player/company information from save file and plot
