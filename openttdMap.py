@@ -3,7 +3,19 @@ import traceback
 
 from PIL import Image
 
-class OpenTTDFileParser():
+"""
+class Tile(object):
+    def __init__(self,tileType):
+        self.tileType = tileType
+
+class Industry(Tile):
+    def __init__(self):
+        Tile.__init__(self,"indy")
+
+    def parseType(self,
+"""
+
+class OpenTTDFileParser(object):
     def __init__(self,filen):
         self.fileName = filen
         self.filePt = open(filen)
@@ -93,7 +105,7 @@ class OpenTTDFileParser():
             if x == width:
                 x=0
                 y+=1
-    
+        
     def _parse_MAPO(self,block,payload):
         width,height = self.size
         x,y = 0,0
@@ -101,6 +113,18 @@ class OpenTTDFileParser():
         for c in payload:
             n = ord(c)
             self.mapO[y][x] = n
+            x += 1
+            if x == width:
+                x=0
+                y+=1
+
+    def _parse_MAP2(self,block,payload):
+        width,height = self.size
+        x,y = 0,0
+        self.map2 = [[-1 for j in xrange(height)] for i in xrange(width)]
+        for c in payload:
+            n = ord(c)
+            self.map2[y][x] = n
             x += 1
             if x == width:
                 x=0
@@ -113,6 +137,30 @@ class OpenTTDFileParser():
         for c in payload:
             n = ord(c)
             self.map5[y][x] = n
+            x += 1
+            if x == width:
+                x=0
+                y+=1
+    
+    def _parse_M3LO(self,block,payload):
+        width,height = self.size
+        x,y = 0,0
+        self.m3lo = [[-1 for j in xrange(height)] for i in xrange(width)]
+        for c in payload:
+            n = ord(c)
+            self.m3lo[y][x] = n
+            x += 1
+            if x == width:
+                x=0
+                y+=1
+    
+    def _parse_M3HI(self,block,payload):
+        width,height = self.size
+        x,y = 0,0
+        self.m3hi = [[-1 for j in xrange(height)] for i in xrange(width)]
+        for c in payload:
+            n = ord(c)
+            self.m3hi[y][x] = n
             x += 1
             if x == width:
                 x=0
@@ -144,7 +192,7 @@ if __name__ == "__main__":
             t = f.tileMap[x][y]
             pix[x,y] = cols[t]
             #print x,y,t,cols[t]
-    img.resize((w*10,h*10)).save("ottdmaptest.png")
+    img.save("ottdmaptest.png")
     
     img = Image.new("RGB",(w,h))
     pix = img.load()
@@ -152,7 +200,7 @@ if __name__ == "__main__":
         for y in xrange(h):
             t = f.mapO[x][y]
             pix[x,y] = (t,t,t)
-    img.resize((w*10,h*10)).save("ottdmaptestO.png")
+    img.save("ottdmaptestO.png")
     
     img = Image.new("RGB",(w,h))
     pix = img.load()
@@ -161,3 +209,27 @@ if __name__ == "__main__":
             t = f.map5[x][y]
             pix[x,y] = (t,t,t)
     img.save("ottdmaptest5.png")
+    
+    img = Image.new("RGB",(w,h))
+    pix = img.load()
+    for x in xrange(w):
+        for y in xrange(h):
+            t = f.m3lo[x][y]
+            pix[x,y] = (t,t,t)
+    img.save("ottdmaptest3lo.png")
+    
+    mg = Image.new("RGB",(w,h))
+    pix = img.load()
+    for x in xrange(w):
+        for y in xrange(h):
+            t = f.m3hi[x][y]
+            pix[x,y] = (t,t,t)
+    img.save("ottdmaptest3hi.png")
+
+    mg = Image.new("RGB",(w,h))
+    pix = img.load()
+    for x in xrange(w):
+        for y in xrange(h):
+            t = f.map2[x][y]
+            pix[x,y] = (t,t,t)
+    img.save("ottdmaptest2.png")
