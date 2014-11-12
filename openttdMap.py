@@ -2,6 +2,8 @@
 
 import struct,sys
 import traceback
+import lzma
+import StringIO
 
 from PIL import Image
 
@@ -23,9 +25,12 @@ class OpenTTDFileParser(object):
         self.chunks = []
         self._readHeaders()
         if self.header == 'OTTN':
-            self._readAllChunks()
+            pass
+        elif self.header == 'OTTX':
+            self.filePt = StringIO.StringIO(lzma.decompress(self.filePt.read()))
         else:
             raise UnRecognisedFormat(self.header,self.version[0],self.version[1])
+        self._readAllChunks()
 
     def _readHeaders(self):
         self.header = self.filePt.read(4)
