@@ -171,22 +171,46 @@ class OpenTTDFileParser(object):
             if x == width:
                 x=0
                 y+=1
+
+    def _parse_MAPE(self,block,payload):
+        width,height = self.size
+        x,y = 0,0
+        self.mapE = [[-1 for j in xrange(height)] for i in xrange(width)]
+        for c in payload:
+            n = ord(c)
+            self.mapE[y][x] = n
+            x += 1
+            if x == width:
+                x=0
+                y+=1
+                
+    def _parse_MAP7(self,block,payload):
+        width,height = self.size
+        x,y = 0,0
+        self.map7 = [[-1 for j in xrange(height)] for i in xrange(width)]
+        for c in payload:
+            n = ord(c)
+            self.map7[y][x] = n
+            x += 1
+            if x == width:
+                x=0
+                y+=1
             
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
 
     cols = [
-        (64,255,64),    #Clear
-        (64,64,64),     #Railway
-        (16,16,16),     #Road
-        (8,8,8),        #House
-        (0,180,180),    #Tree
-        (32,32,32),     #Station
-        (0,0,128),      #Water
-        (255,0,255),    #Void
-        (8,8,8),        #Industry
-        (255,127,0),    #Tunnel
-        (180,180,180)   #Object
+        (0x3b,0x4d,0x27),     #Clear
+        (0xa8,0xa8,0xa8),     #Railway
+        (0x17,0x17,0x17),     #Road
+        (0xfc,0xfc,0xfc),     #House
+        (0x80,0xa9,0x2d),    #Tree
+        (0xef,0x00,0x23),     #Station
+        (0x3c,0x59,0xa2),      #Water
+        (0xFF,0x00,0xFF),     #Void
+        (0x79,0x00,0x11),     #Industry
+        (0xFF,0x77,0x00),     #Tunnel
+        (0x77,0x77,0x77)   #Object
     ]
 
     w,h=f.size
@@ -230,6 +254,22 @@ if __name__ == "__main__":
             t = f.m3hi[x][y]
             pix[x,y] = (t,t,t)
     img.save("ottdmaptest3hi.png")
+    
+    mg = Image.new("RGB",(w,h))
+    pix = img.load()
+    for x in xrange(w):
+        for y in xrange(h):
+            t = f.mapE[x][y]
+            pix[x,y] = (t,t,t)
+    img.save("ottdmaptestE.png")
+    
+    mg = Image.new("RGB",(w,h))
+    pix = img.load()
+    for x in xrange(w):
+        for y in xrange(h):
+            t = f.map7[x][y]
+            pix[x,y] = (t,t,t)
+    img.save("ottdmaptest7.png")
     
     """
     img = Image.new("RGB",(w,h))
