@@ -4,6 +4,7 @@ import struct,sys
 import traceback
 import lzma
 import StringIO
+import colorsys
 
 from PIL import Image
 
@@ -16,6 +17,80 @@ class UnRecognisedFormat(Exception):
     def __repr__(self):
         return "Un-recognised save format: {},{},{}".format(magicNumber,majorVersion,minorVersion)
 
+class Tile(object):
+    def __init__(self,tHeight):
+        self.height = tHeight
+        self.owner = None
+        
+    @staticmethod
+    def ofType(tType,tHeight):
+        if tType == 0:
+            return ClearTile(tHeight)
+        elif tType == 1:
+            return RailTile(tHeight)
+        elif tType == 2:
+            return RoadTile(tHeight)
+        elif tType == 3:
+            return HouseTile(tHeight)
+        elif tType == 4:
+            return TreeTile(tHeight)
+        elif tType == 5:
+            return StationTile(tHeight)
+        elif tType == 6:
+            return WaterTile(tHeight)
+        elif tType == 7:
+            return VoidTile(tHeight)
+        elif tType == 8:
+            return IndyTile(tHeight)
+        elif tType == 9:
+            return TunnelTile(tHeight)
+        elif tType == 10:
+            return ObjTile(tHeight)
+    
+    def handle_MAPO(self,value):
+        pass
+    
+    def colourWithHeight(self):
+        return tuple(x+self.height*20 for x in self.colour)
+
+class TileWithOwner(Tile):
+    def handle_MAPO(self,value):
+        self.owner = value
+
+class ClearTile(TileWithOwner):
+    colour = (0x3b,0x4d,0x27)
+
+class RailTile(TileWithOwner):
+    colour = (0xa8,0xa8,0xa8)
+
+class RoadTile(TileWithOwner):
+    colour = (0x17,0x17,0x17)
+
+class HouseTile(Tile):
+    colour = (0xfc,0xfc,0xfc)
+
+class TreeTile(TileWithOwner):
+    colour = (0x80,0xa9,0x2d)
+
+class StationTile(TileWithOwner):
+    colour = (0xef,0x00,0x23)
+
+class WaterTile(TileWithOwner):
+    colour = (0x3c,0x59,0xa2)
+
+class VoidTile(Tile):
+    colour = (0xFF,0x00,0xFF)
+
+class IndyTile(Tile):
+    colour = (0x79,0x00,0x11)
+
+class TunnelTile(Tile):
+    colour = (0xFF,0x77,0x00)
+
+class ObjTile(Tile):
+    colour = (0x77,0x77,0x77)
+
+
 class OpenTTDFileParser(object):
     def __init__(self,filen):
         self.fileName = filen
@@ -23,13 +98,18 @@ class OpenTTDFileParser(object):
         self.header = None
         self.version = None
         self.chunks = []
+        self.mapTiles = []
+        
         self._readHeaders()
+        
         if self.header == 'OTTN':
             pass
         elif self.header == 'OTTX':
             self.filePt = StringIO.StringIO(lzma.decompress(self.filePt.read()))
         else:
             raise UnRecognisedFormat(self.header,self.version[0],self.version[1])
+            
+            
         self._readAllChunks()
 
     def _readHeaders(self):
@@ -91,20 +171,20 @@ class OpenTTDFileParser(object):
 
     def _parse_MAPS(self,block,payload):
         self.size = struct.unpack(">II",payload)
-        print "SIZE",self.size
+        
     
     #Tile type & Height map 
     def _parse_MAPT(self,block,payload):
         width,height = self.size
         x,y = 0,0
-        self.heightMap = [[-1 for j in xrange(height)] for i in xrange(width)]
-        self.tileMap = [[-1 for j in xrange(height)] for i in xrange(width)]
+        
+        self.mapTiles = [[None for j in xrange(width)] for i in xrange(height)]
+        
         for c in payload:
             n = ord(c)
-            h = n & 0xF
-            t = n >> 4
-            self.heightMap[y][x] = h
-            self.tileMap[y][x] = t
+            tileHeight = n & 0xF
+            tileType = n >> 4
+            self.mapTiles[y][x] = Tile.ofType(tileType,tileHeight)
             x += 1
             if x == width:
                 x=0
@@ -113,172 +193,38 @@ class OpenTTDFileParser(object):
     def _parse_MAPO(self,block,payload):
         width,height = self.size
         x,y = 0,0
-        self.mapO = [[-1 for j in xrange(height)] for i in xrange(width)]
         for c in payload:
-            n = ord(c)
-            self.mapO[y][x] = n
-            x += 1
-            if x == width:
-                x=0
-                y+=1
-
-    """ Dosent work as Map2 has 16 bits per tile.
-    def _parse_MAP2(self,block,payload):
-        width,height = self.size
-        x,y = 0,0
-        self.map2 = [[-1 for j in xrange(height)] for i in xrange(width)]
-        for c in payload:
-            n = ord(c)
-            self.map2[y][x] = n
-            x += 1
-            if x == width:
-                x=0
-                y+=1
-    """
-    
-    def _parse_MAP5(self,block,payload):
-        width,height = self.size
-        x,y = 0,0
-        self.map5 = [[-1 for j in xrange(height)] for i in xrange(width)]
-        for c in payload:
-            n = ord(c)
-            self.map5[y][x] = n
+            self.mapTiles[y][x].handle_MAPO(ord(c))
             x += 1
             if x == width:
                 x=0
                 y+=1
     
-    def _parse_M3LO(self,block,payload):
-        width,height = self.size
-        x,y = 0,0
-        self.m3lo = [[-1 for j in xrange(height)] for i in xrange(width)]
-        for c in payload:
-            n = ord(c)
-            self.m3lo[y][x] = n
-            x += 1
-            if x == width:
-                x=0
-                y+=1
-    
-    def _parse_M3HI(self,block,payload):
-        width,height = self.size
-        x,y = 0,0
-        self.m3hi = [[-1 for j in xrange(height)] for i in xrange(width)]
-        for c in payload:
-            n = ord(c)
-            self.m3hi[y][x] = n
-            x += 1
-            if x == width:
-                x=0
-                y+=1
-
-    def _parse_MAPE(self,block,payload):
-        width,height = self.size
-        x,y = 0,0
-        self.mapE = [[-1 for j in xrange(height)] for i in xrange(width)]
-        for c in payload:
-            n = ord(c)
-            self.mapE[y][x] = n
-            x += 1
-            if x == width:
-                x=0
-                y+=1
-                
-    def _parse_MAP7(self,block,payload):
-        width,height = self.size
-        x,y = 0,0
-        self.map7 = [[-1 for j in xrange(height)] for i in xrange(width)]
-        for c in payload:
-            n = ord(c)
-            self.map7[y][x] = n
-            x += 1
-            if x == width:
-                x=0
-                y+=1
-            
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
 
-    cols = [
-        (0x3b,0x4d,0x27),     #Clear
-        (0xa8,0xa8,0xa8),     #Railway
-        (0x17,0x17,0x17),     #Road
-        (0xfc,0xfc,0xfc),     #House
-        (0x80,0xa9,0x2d),     #Tree
-        (0xef,0x00,0x23),     #Station
-        (0x3c,0x59,0xa2),     #Water
-        (0xFF,0x00,0xFF),     #Void
-        (0x79,0x00,0x11),     #Industry
-        (0xFF,0x77,0x00),     #Tunnel
-        (0x77,0x77,0x77)      #Object
-    ]
-
+    def getCol(n):
+        if not n in colStore:
+            i = len(colStore)
+            colStore[n] = tuple([ int(z*255) for z in colorsys.hsv_to_rgb((0.618033988749895 * i) % 1,1,1)])
+            pix[n%32,h+2+(n/32)] = colStore[n]
+        return colStore[n]
+    
+    colStore = {0x10:(255,255,255)}
     w,h=f.size
     img = Image.new("RGB",(w,h))
     pix = img.load()
     for x in xrange(w):
         for y in xrange(h):
-            t = f.tileMap[x][y]
-            th = f.heightMap[x][y]
-            hv = th*20
-            pix[x,y] = tuple([min(255,z+hv) for z in cols[t]])
-    img.save("ottdmaptest.png")
+            pix[x,y] = f.mapTiles[x][y].colourWithHeight()
+    img.save("ottdTiles.png")
     
-    """
-    img = Image.new("RGB",(w,h))
+
+    img = Image.new("RGB",(w,h+10))
     pix = img.load()
     for x in xrange(w):
         for y in xrange(h):
-            t = f.mapO[x][y]
-            pix[x,y] = (t,t,t)
-    img.save("ottdmaptestO.png")
-    
-    img = Image.new("RGB",(w,h))
-    pix = img.load()
-    for x in xrange(w):
-        for y in xrange(h):
-            t = f.map5[x][y]
-            pix[x,y] = (t,t,t)
-    img.save("ottdmaptest5.png")
-    
-    img = Image.new("RGB",(w,h))
-    pix = img.load()
-    for x in xrange(w):
-        for y in xrange(h):
-            t = f.m3lo[x][y]
-            pix[x,y] = (t,t,t)
-    img.save("ottdmaptest3lo.png")
-    
-    mg = Image.new("RGB",(w,h))
-    pix = img.load()
-    for x in xrange(w):
-        for y in xrange(h):
-            t = f.m3hi[x][y]
-            pix[x,y] = (t,t,t)
-    img.save("ottdmaptest3hi.png")
-    
-    mg = Image.new("RGB",(w,h))
-    pix = img.load()
-    for x in xrange(w):
-        for y in xrange(h):
-            t = f.mapE[x][y]
-            pix[x,y] = (t,t,t)
-    img.save("ottdmaptestE.png")
-    
-    mg = Image.new("RGB",(w,h))
-    pix = img.load()
-    for x in xrange(w):
-        for y in xrange(h):
-            t = f.map7[x][y]
-            pix[x,y] = (t,t,t)
-    img.save("ottdmaptest7.png")
-    """
-    """
-    img = Image.new("RGB",(w,h))
-    pix = img.load()
-    for x in xrange(w):
-        for y in xrange(h):
-            t = f.map2[x][y]
-            pix[x,y] = (t,t,t)
-    img.save("ottdmaptest2.png")
-    """
+            owner = f.mapTiles[x][y].owner
+            if not owner is None:
+                pix[x,y] = getCol(owner)
+    img.save("ottdOwnership.png")
