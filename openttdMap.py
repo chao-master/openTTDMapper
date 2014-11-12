@@ -5,18 +5,6 @@ import traceback
 
 from PIL import Image
 
-"""
-class Tile(object):
-    def __init__(self,tileType):
-        self.tileType = tileType
-
-class Industry(Tile):
-    def __init__(self):
-        Tile.__init__(self,"indy")
-
-    def parseType(self,
-"""
-
 class OpenTTDFileParser(object):
     def __init__(self,filen):
         self.fileName = filen
@@ -124,6 +112,7 @@ class OpenTTDFileParser(object):
                 x=0
                 y+=1
 
+    """ Dosent work as Map2 has 16 bits per tile.
     def _parse_MAP2(self,block,payload):
         width,height = self.size
         x,y = 0,0
@@ -135,6 +124,7 @@ class OpenTTDFileParser(object):
             if x == width:
                 x=0
                 y+=1
+    """
     
     def _parse_MAP5(self,block,payload):
         width,height = self.size
@@ -174,7 +164,6 @@ class OpenTTDFileParser(object):
             
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
-
 
     cols = [
         (64,255,64),    #Clear
@@ -231,11 +220,13 @@ if __name__ == "__main__":
             t = f.m3hi[x][y]
             pix[x,y] = (t,t,t)
     img.save("ottdmaptest3hi.png")
-
-    mg = Image.new("RGB",(w,h))
+    
+    """
+    img = Image.new("RGB",(w,h))
     pix = img.load()
     for x in xrange(w):
         for y in xrange(h):
             t = f.map2[x][y]
             pix[x,y] = (t,t,t)
     img.save("ottdmaptest2.png")
+    """
