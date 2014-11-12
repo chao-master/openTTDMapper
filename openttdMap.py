@@ -55,7 +55,7 @@ class Tile(object):
 
 class TileWithOwner(Tile):
     def handle_MAPO(self,value):
-        self.owner = value
+        self.owner = value & 0b11111 #Only the lower 5 bytes seem to be used
 
 class ClearTile(TileWithOwner):
     colour = (0x3b,0x4d,0x27)
@@ -206,11 +206,11 @@ if __name__ == "__main__":
     def getCol(n):
         if not n in colStore:
             i = len(colStore)
-            colStore[n] = tuple([ int(z*255) for z in colorsys.hsv_to_rgb((0.618033988749895 * i) % 1,1,1)])
+            colStore[n] = tuple([ int(z*255) for z in colorsys.hsv_to_rgb((0.618033988749895 * i) % 1,0.8,0.8)])
             pix[n%32,h+2+(n/32)] = colStore[n]
         return colStore[n]
     
-    colStore = {0x10:(255,255,255)}
+    colStore = {0x10:(255,255,255),0x11:(255,255,255)} #Both 0x10 and 0x11 seem to refer to unown land, the later being unowned water
     w,h=f.size
     img = Image.new("RGB",(w,h))
     pix = img.load()
