@@ -5,6 +5,15 @@ import traceback
 
 from PIL import Image
 
+class UnRecognisedFormat(Exception):
+    def __init__(self,magicNumber,majorVersion,minorVersion):
+        self.magicNumber = magicNumber
+        self.majorVersion = majorVersion
+        self.minorVersion = minorVersion
+    
+    def __repr__(self):
+        return "Un-recognised save format: {},{},{}".format(magicNumber,majorVersion,minorVersion)
+
 class OpenTTDFileParser(object):
     def __init__(self,filen):
         self.fileName = filen
@@ -14,13 +23,9 @@ class OpenTTDFileParser(object):
         self.chunks = []
         self._readHeaders()
         if self.header == 'OTTN':
-            try:
-                self._readAllChunks()
-            except:
-                traceback.print_exc()
+            self._readAllChunks()
         else:
-            print 'Unsupported save encryption'
-            sys.exit()
+            raise UnRecognisedFormat(self.header,self.version[0],self.version[1])
 
     def _readHeaders(self):
         self.header = self.filePt.read(4)
