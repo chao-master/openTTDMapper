@@ -15,3 +15,4 @@ TODO:
 * Discover what all of the chunks represent
 * Optimise the colors for simple output
 * Extract player/company information from save file and plot
+* Decrypt savegames
