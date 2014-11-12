@@ -1,13 +1,13 @@
 
 Todo:
 Find Icons for Industry
-* COAL_MINE
-* OIL_RIG
-* OIL_WELL
-* COPPER_MINE
-* TOY_FACTOR
-* PLASTIC_FOUNTAIN
-* BUBBLE_GENERATOR
-* BUBBLE_CATCHER
-* TOFFEE_QUARRY
-* SUGAR_MINE_SIEVE
+* COALMINE ✓ icon/mine.png
+* OILRIG ✓ icon/oilrig.png
+* OILWELL ✓ icon/oilwell.png
+* COPPERMINE ✓ icon/mine.png
+* TOYFACTORY ✓ icon/factory.png
+* PLASTICFOUNTAIN ✓ icon/factory.png
+* BUBBLEGENERATOR ✓ icon/factory.png
+* BUBBLECATCHER ✓ icon/factory.png
+* TOFFEEQUARRY ✓ icon/mine.png
+* SUGARMINESIEVE ✓ icon/mine.png
