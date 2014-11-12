@@ -2,7 +2,7 @@
 
 import struct,sys
 import traceback
-
+import lzma
 from PIL import Image
 
 class OpenTTDFileParser(object):
