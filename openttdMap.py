@@ -210,19 +210,20 @@ class OpenTTDFileParser(object):
     #Map size infomation
     def _parse_MAPS(self,block,payload):
         self.size = struct.unpack(">II",payload)
+        print "Map Size:", self.size
     
     #Tile type & Height map 
     def _parse_MAPT(self,block,payload):
         width,height = self.size
         x,y = 0,0
         
-        self.mapTiles = [[None for j in xrange(width)] for i in xrange(height)]
+        self.mapTiles = [[None for j in xrange(height)] for i in xrange(width)]
         
         for c in payload:
             n = ord(c)
             tileHeight = n & 0xF
             tileType = n >> 4
-            self.mapTiles[y][x] = Tile.ofType(tileType,tileHeight,self)
+            self.mapTiles[x][y] = Tile.ofType(tileType,tileHeight,self)
             x += 1
             if x == width:
                 x=0
@@ -233,7 +234,7 @@ class OpenTTDFileParser(object):
         width,height = self.size
         x,y = 0,0
         for c in payload:
-            self.mapTiles[y][x].handle_MAPO(ord(c))
+            self.mapTiles[x][y].handle_MAPO(ord(c))
             x += 1
             if x == width:
                 x=0
@@ -245,7 +246,7 @@ class OpenTTDFileParser(object):
         i = 0
         for i in xrange(width*height):
             c,x,y = payload[i*2:i*2+2],i%width,i/width
-            self.mapTiles[y][x].handle_MAP2(struct.unpack(">H",c)[0])
+            self.mapTiles[x][y].handle_MAP2(struct.unpack(">H",c)[0])
 
     def _parse_INDY(self,block,payload):
         for infoString in payload:
@@ -265,20 +266,20 @@ if __name__ == "__main__":
     colStore = {0x10:(255,255,255)}
 
     w,h=f.size
-    imgTiles = Image.new("RGB",(w,h))
-    imgOwner = Image.new("RGB",(w,h+10))
-    imgIndy  = Image.new("RGB",(w,h))
+    imgTiles = Image.new("RGB",(h,w))
+    imgOwner = Image.new("RGB",(h,w+10))
+    imgIndy  = Image.new("RGB",(h,w))
     pixTiles = imgTiles.load()
     pixOwner = imgOwner.load()
     pixIndy  = imgIndy.load()
     c=0
     for x in xrange(w):
         for y in xrange(h):
-            pixTiles[x,y] = f.mapTiles[x][y].colourWithHeight()
+            pixTiles[y,x] = f.mapTiles[x][y].colourWithHeight()
             owner = f.mapTiles[x][y].owner
             if not owner is None:
-                pixOwner[x,y] = getCol(owner)
-            pixIndy[x,y] = f.mapTiles[x][y].getIndyColour()
+                pixOwner[y,x] = getCol(owner)
+            pixIndy[y,x] = f.mapTiles[x][y].getIndyColour()
             if isinstance(f.mapTiles[x][y],IndyTile):
                 c+=1
     imgTiles.save("ottdTiles.png") 
