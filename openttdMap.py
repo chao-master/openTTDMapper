@@ -18,40 +18,46 @@ class UnRecognisedFormat(Exception):
         return "Un-recognised save format: {},{},{}".format(magicNumber,majorVersion,minorVersion)
 
 class Tile(object):
-    def __init__(self,tHeight):
+    def __init__(self,tHeight,gameMap):
         self.height = tHeight
+        self.gameMap = gameMap
         self.owner = None
         
     @staticmethod
-    def ofType(tType,tHeight):
+    def ofType(tType,tHeight,mapRef):
         if tType == 0:
-            return ClearTile(tHeight)
+            return ClearTile(tHeight,mapRef)
         elif tType == 1:
-            return RailTile(tHeight)
+            return RailTile(tHeight,mapRef)
         elif tType == 2:
-            return RoadTile(tHeight)
+            return RoadTile(tHeight,mapRef)
         elif tType == 3:
-            return HouseTile(tHeight)
+            return HouseTile(tHeight,mapRef)
         elif tType == 4:
-            return TreeTile(tHeight)
+            return TreeTile(tHeight,mapRef)
         elif tType == 5:
-            return StationTile(tHeight)
+            return StationTile(tHeight,mapRef)
         elif tType == 6:
-            return WaterTile(tHeight)
+            return WaterTile(tHeight,mapRef)
         elif tType == 7:
-            return VoidTile(tHeight)
+            return VoidTile(tHeight,mapRef)
         elif tType == 8:
-            return IndyTile(tHeight)
+            return IndyTile(tHeight,mapRef)
         elif tType == 9:
-            return TunnelTile(tHeight)
+            return TunnelTile(tHeight,mapRef)
         elif tType == 10:
-            return ObjTile(tHeight)
+            return ObjTile(tHeight,mapRef)
     
     def handle_MAPO(self,value):
+        pass
+    def handle_MAP2(self,value):
         pass
     
     def colourWithHeight(self):
         return tuple(x+self.height*20 for x in self.colour)
+
+    def getIndyColour(self):
+        return tuple(x+self.height*20 for x in ClearTile.colour)
 
 class TileWithOwner(Tile):
     def handle_MAPO(self,value):
@@ -77,12 +83,26 @@ class StationTile(TileWithOwner):
 
 class WaterTile(TileWithOwner):
     colour = (0x3c,0x59,0xa2)
+    def getIndyColour(self):
+        return tuple(x+self.height*20 for x in self.colour)
 
 class VoidTile(Tile):
     colour = (0xFF,0x00,0xFF)
 
 class IndyTile(Tile):
     colour = (0x79,0x00,0x11)
+    def handle_MAP2(self,value):
+        self.indyRef = value
+
+    def getIndyColour(self):
+        try:
+            return Industry.colours[self.gameMap.industries[self.indyRef].type]
+        except KeyError as e:
+            print e
+            return (255,127,0)
+        except IndexError as e:
+            print e
+            return (0,0,0)
 
 class TunnelTile(Tile):
     colour = (0xFF,0x77,0x00)
@@ -90,6 +110,24 @@ class TunnelTile(Tile):
 class ObjTile(Tile):
     colour = (0x77,0x77,0x77)
 
+class Industry(object):
+    colours = {
+        0x0c: (0xfc,0xfc,0xfc), #Bank
+        0x00: (0x10,0x10,0x10), #Coal Mine
+        0x06: (0xa8,0x88,0xe0), #Factory
+        0x03: (0x68,0x94,0x1c), #Forest
+        0x12: (0x74,0x58,0x1c), #IronMine
+        0x04: (0xfc,0xfc,0x00), #Oil Refinary
+        0x01: (0xfc,0x00,0x00), #Power Plant
+        0x05: (0x80,0xc4,0xfc), #Oil Well
+        0x0b: (0x80,0xc4,0xfc), #Oil Rig
+        0x09: (0xec,0x9c,0xa4), #Farm
+        0x02: (0xfc,0x9c,0x00), #Sawmill
+        0x08: (0xa8,0xa8,0xa8), #Steel Mill
+    }
+    def __init__(self,infoString):
+        self.type = ord(infoString[43])
+        #There is a lot of other infomation in here but right now we just want the type.
 
 class OpenTTDFileParser(object):
     def __init__(self,filen):
@@ -99,6 +137,7 @@ class OpenTTDFileParser(object):
         self.version = None
         self.chunks = []
         self.mapTiles = []
+        self.industries = []
         
         self._readHeaders()
         
@@ -108,7 +147,6 @@ class OpenTTDFileParser(object):
             self.filePt = StringIO.StringIO(lzma.decompress(self.filePt.read()))
         else:
             raise UnRecognisedFormat(self.header,self.version[0],self.version[1])
-            
             
         self._readAllChunks()
 
@@ -169,37 +207,52 @@ class OpenTTDFileParser(object):
             print len(payload),"of",len(payload[0])
         self.chunks.append((block,payload,))
 
+    #Map size infomation
     def _parse_MAPS(self,block,payload):
         self.size = struct.unpack(">II",payload)
-        
+        print "Map Size:", self.size
     
     #Tile type & Height map 
     def _parse_MAPT(self,block,payload):
         width,height = self.size
         x,y = 0,0
         
-        self.mapTiles = [[None for j in xrange(width)] for i in xrange(height)]
+        self.mapTiles = [[None for j in xrange(height)] for i in xrange(width)]
         
         for c in payload:
             n = ord(c)
             tileHeight = n & 0xF
             tileType = n >> 4
-            self.mapTiles[y][x] = Tile.ofType(tileType,tileHeight)
-            x += 1
-            if x == width:
-                x=0
-                y+=1
-        
-    def _parse_MAPO(self,block,payload):
-        width,height = self.size
-        x,y = 0,0
-        for c in payload:
-            self.mapTiles[y][x].handle_MAPO(ord(c))
+            self.mapTiles[x][y] = Tile.ofType(tileType,tileHeight,self)
             x += 1
             if x == width:
                 x=0
                 y+=1
     
+    #Tile Ownership infomation
+    def _parse_MAPO(self,block,payload):
+        width,height = self.size
+        x,y = 0,0
+        for c in payload:
+            self.mapTiles[x][y].handle_MAPO(ord(c))
+            x += 1
+            if x == width:
+                x=0
+                y+=1
+    
+    #Industry Type infomation (proably other things too)
+    def _parse_MAP2(self,block,payload):
+        width,height = self.size
+        i = 0
+        for i in xrange(width*height):
+            c,x,y = payload[i*2:i*2+2],i%width,i/width
+            self.mapTiles[x][y].handle_MAP2(struct.unpack(">H",c)[0])
+
+    def _parse_INDY(self,block,payload):
+        for infoString in payload:
+            if infoString:
+                self.industries.append(Industry(infoString))
+
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
 
@@ -212,19 +265,25 @@ if __name__ == "__main__":
     
     colStore = {0x10:(255,255,255),0x11:(255,255,255)} #Both 0x10 and 0x11 seem to refer to unown land, the later being unowned water
     w,h=f.size
-    img = Image.new("RGB",(w,h))
-    pix = img.load()
+    imgTiles = Image.new("RGB",(h,w))
+    imgOwner = Image.new("RGB",(h,w+10))
+    imgIndy  = Image.new("RGB",(h,w))
+    pixTiles = imgTiles.load()
+    pixOwner = imgOwner.load()
+    pixIndy  = imgIndy.load()
+    c=0
     for x in xrange(w):
         for y in xrange(h):
-            pix[x,y] = f.mapTiles[x][y].colourWithHeight()
-    img.save("ottdTiles.png")
-    
-
-    img = Image.new("RGB",(w,h+10))
-    pix = img.load()
-    for x in xrange(w):
-        for y in xrange(h):
+            pixTiles[y,x] = f.mapTiles[x][y].colourWithHeight()
             owner = f.mapTiles[x][y].owner
             if not owner is None:
-                pix[x,y] = getCol(owner)
-    img.save("ottdOwnership.png")
+                pixOwner[y,x] = getCol(owner)
+            pixIndy[y,x] = f.mapTiles[x][y].getIndyColour()
+            if isinstance(f.mapTiles[x][y],IndyTile):
+                c+=1
+    imgTiles.save("ottdTiles.png") 
+    imgOwner.save("ottdOwnership.png")
+    imgIndy.save("ottdIndy.png")
+
+    print c
+    print len(f.industries)
