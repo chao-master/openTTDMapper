@@ -129,6 +129,10 @@ class Industry(object):
         self.type = ord(infoString[43])
         #There is a lot of other infomation in here but right now we just want the type.
 
+class Player(object):
+    def __init__(self,infoString):
+        pass
+
 class OpenTTDFileParser(object):
     def __init__(self,filen):
         self.fileName = filen
@@ -252,6 +256,11 @@ class OpenTTDFileParser(object):
         for infoString in payload:
             if infoString:
                 self.industries.append(Industry(infoString))
+    
+    def _parse_PLYR(self,block,payload):
+        f = open("PLYR_DUMP","w")
+        f.write(block)
+        f.close()
 
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
@@ -260,7 +269,7 @@ if __name__ == "__main__":
         if not n in colStore:
             i = len(colStore)
             colStore[n] = tuple([ int(z*255) for z in colorsys.hsv_to_rgb((0.618033988749895 * i) % 1,0.8,0.8)])
-            pix[n%32,h+2+(n/32)] = colStore[n]
+            pixOwner[n%32,h+2+(n/32)] = colStore[n]
         return colStore[n]
     
     colStore = {0x10:(255,255,255),0x11:(255,255,255)} #Both 0x10 and 0x11 seem to refer to unown land, the later being unowned water
