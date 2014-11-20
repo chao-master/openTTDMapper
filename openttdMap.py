@@ -6,6 +6,8 @@ import lzma
 import StringIO
 import colorsys
 
+from tiles import *
+
 from PIL import Image
 
 class UnRecognisedFormat(Exception):
@@ -16,100 +18,6 @@ class UnRecognisedFormat(Exception):
     
     def __repr__(self):
         return "Un-recognised save format: {},{},{}".format(magicNumber,majorVersion,minorVersion)
-
-class Tile(object):
-    def __init__(self,tHeight,gameMap):
-        self.height = tHeight
-        self.gameMap = gameMap
-        self.owner = None
-        
-    @staticmethod
-    def ofType(tType,tHeight,mapRef):
-        if tType == 0:
-            return ClearTile(tHeight,mapRef)
-        elif tType == 1:
-            return RailTile(tHeight,mapRef)
-        elif tType == 2:
-            return RoadTile(tHeight,mapRef)
-        elif tType == 3:
-            return HouseTile(tHeight,mapRef)
-        elif tType == 4:
-            return TreeTile(tHeight,mapRef)
-        elif tType == 5:
-            return StationTile(tHeight,mapRef)
-        elif tType == 6:
-            return WaterTile(tHeight,mapRef)
-        elif tType == 7:
-            return VoidTile(tHeight,mapRef)
-        elif tType == 8:
-            return IndyTile(tHeight,mapRef)
-        elif tType == 9:
-            return TunnelTile(tHeight,mapRef)
-        elif tType == 10:
-            return ObjTile(tHeight,mapRef)
-    
-    def handle_MAPO(self,value):
-        pass
-    def handle_MAP2(self,value):
-        pass
-    
-    def colourWithHeight(self):
-        return tuple(x+self.height*20 for x in self.colour)
-
-    def getIndyColour(self):
-        return tuple(x+self.height*20 for x in ClearTile.colour)
-
-class TileWithOwner(Tile):
-    def handle_MAPO(self,value):
-        self.owner = value & 0b11111 #Only the lower 5 bytes seem to be used
-	#XXX compay_type.h enum owner seems to have this data
-
-class ClearTile(TileWithOwner):
-    colour = (0x3b,0x4d,0x27)
-
-class RailTile(TileWithOwner):
-    colour = (0xa8,0xa8,0xa8)
-
-class RoadTile(TileWithOwner):
-    colour = (0x17,0x17,0x17)
-
-class HouseTile(Tile):
-    colour = (0xfc,0xfc,0xfc)
-
-class TreeTile(TileWithOwner):
-    colour = (0x80,0xa9,0x2d)
-
-class StationTile(TileWithOwner):
-    colour = (0xef,0x00,0x23)
-
-class WaterTile(TileWithOwner):
-    colour = (0x3c,0x59,0xa2)
-    def getIndyColour(self):
-        return tuple(x+self.height*20 for x in self.colour)
-
-class VoidTile(Tile):
-    colour = (0xFF,0x00,0xFF)
-
-class IndyTile(Tile):
-    colour = (0x79,0x00,0x11)
-    def handle_MAP2(self,value):
-        self.indyRef = value
-
-    def getIndyColour(self):
-        try:
-            return Industry.colours[self.gameMap.industries[self.indyRef].type]
-        except KeyError as e:
-            #print e
-            return (255,127,0)
-        except IndexError as e:
-            #print e
-            return (0,0,0)
-
-class TunnelTile(Tile):
-    colour = (0xFF,0x77,0x00)
-
-class ObjTile(Tile):
-    colour = (0x77,0x77,0x77)
 
 class Industry(object):
     colours = {
@@ -291,7 +199,7 @@ class OpenTTDFileParser(object):
                 self.industries.append(Industry(infoString))
     
     def _parse_PLYR(self,block,payload):
-        self.players = [Player(p) for p in payload
+        self.players = [Player(p) for p in payload]
 
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
