@@ -143,10 +143,28 @@ class Player(object):
         self.face = infoString[start:start+4]
         self.money = struct.unpack(">q",infoString[start+4:start+12])
         self.loan = struct.unpack(">q",infoString[start+12:start+20])
-        self.colour = ord(infoString[start+20:start+21]) #Needs compared to lookup table
+        self.colourId = ord(infoString[start+20:start+21]) #Needs compared to lookup table
         self.mFrac = infoString[start+21:start+22]
     
-        
+    def getColour(self):
+        return [
+            (0x3c,0x59,0xa2),
+            (0x64,0x88,0x6b),
+            (0xc3,0x66,0x7d),
+            (0xe0,0xb9,0x1c),
+            (0xd4,0x00,0x1f),
+            (0x5b,0x8a,0x9e),
+            (0x61,0x9d,0x34),
+            (0x68,0x7c,0x4d),
+            (0x54,0x8b,0xe7),
+            (0xc4,0x7f,0x62),
+            (0x66,0x63,0x87),
+            (0x7c,0x4f,0xe0),
+            (0xf3,0xb0,0x38),
+            (0x94,0x84,0x5d),
+            (0x82,0x84,0x82),
+            (0xc7,0xc7,0xc7)
+        ][self.colourId]
 
 class OpenTTDFileParser(object):
     def __init__(self,filen):
