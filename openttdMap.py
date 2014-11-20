@@ -62,6 +62,7 @@ class Tile(object):
 class TileWithOwner(Tile):
     def handle_MAPO(self,value):
         self.owner = value & 0b11111 #Only the lower 5 bytes seem to be used
+	#XXX compay_type.h enum owner seems to have this data
 
 class ClearTile(TileWithOwner):
     colour = (0x3b,0x4d,0x27)
@@ -98,10 +99,10 @@ class IndyTile(Tile):
         try:
             return Industry.colours[self.gameMap.industries[self.indyRef].type]
         except KeyError as e:
-            print e
+            #print e
             return (255,127,0)
         except IndexError as e:
-            print e
+            #print e
             return (0,0,0)
 
 class TunnelTile(Tile):
@@ -130,8 +131,22 @@ class Industry(object):
         #There is a lot of other infomation in here but right now we just want the type.
 
 class Player(object):
+    #TODO More Parsing
     def __init__(self,infoString):
-        pass
+        sl1 = ord(infoString[6])
+        sl2 = ord(infoString[13+sl1])
+        start = 14+sl1+sl2
+        
+        self.name = infoString[7:7+sl1]
+        self.pName = infoString[14+sl1:start]
+        
+        self.face = infoString[start:start+4]
+        self.money = struct.unpack(">q",infoString[start+4:start+12])
+        self.loan = struct.unpack(">q",infoString[start+12:start+20])
+        self.colour = ord(infoString[start+20:start+21]) #Needs compared to lookup table
+        self.mFrac = infoString[start+21:start+22]
+    
+        
 
 class OpenTTDFileParser(object):
     def __init__(self,filen):
@@ -258,9 +273,7 @@ class OpenTTDFileParser(object):
                 self.industries.append(Industry(infoString))
     
     def _parse_PLYR(self,block,payload):
-        f = open("PLYR_DUMP","w")
-        f.write(block)
-        f.close()
+        self.players = [Player(p) for p in payload
 
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
@@ -293,6 +306,3 @@ if __name__ == "__main__":
     imgTiles.save("ottdTiles.png") 
     imgOwner.save("ottdOwnership.png")
     imgIndy.save("ottdIndy.png")
-
-    print c
-    print len(f.industries)
