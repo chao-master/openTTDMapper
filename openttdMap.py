@@ -35,7 +35,7 @@ class Industry(object):
         0x08: (0xa8,0xa8,0xa8), #Steel Mill
     }
     def __init__(self,infoString):
-        self.type = ord(infoString[43])
+        self.type = ord(infoString[48])
         #There is a lot of other infomation in here but right now we just want the type.
 
 class Player(object):
@@ -195,9 +195,13 @@ class OpenTTDFileParser(object):
             self.mapTiles[x][y].handle_MAP2(struct.unpack(">H",c)[0])
 
     def _parse_INDY(self,block,payload):
-        for infoString in payload:
-            if infoString:
-                self.industries.append(Industry(infoString))
+        f = open("INDY_DUMP","w")
+        for i in payload:
+            f.write(''.join("{:02x} ".format(ord(n)) for n in i))
+            f.write("\n")
+            if i:
+                self.industries.append(Industry(i))
+        f.close()
     
     def _parse_PLYR(self,block,payload):
         self.players = [Player(p,self) for p in payload]
@@ -223,3 +227,7 @@ if __name__ == "__main__":
     imgTiles.save("ottdTiles.png") 
     imgOwner.save("ottdOwnership.png")
     imgIndy.save("ottdIndy.png")
+    
+    print set((item.indyRef,f.industries[item.indyRef].type) for sublist in f.mapTiles for item in sublist if type(item) is IndyTile)
+    print len(f.industries)
+    

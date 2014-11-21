@@ -6,6 +6,8 @@ import colorsys
 
 from openttdMap import *
 
+itr = open("indyTypeRaw","w") #DEBUG
+
 class Tile(object):
     def __init__(self,tHeight,gameMap):
         self.height = tHeight
@@ -100,15 +102,16 @@ class IndyTile(Tile):
     colour = (0x79,0x00,0x11)
     def handle_MAP2(self,value):
         self.indyRef = value
+        itr.write("{:03} ".format(value))
 
     def getIndyColour(self): #TODO Fix this, the issue is mostly with the industy lookup though...
         try:
             return Industry.colours[self.gameMap.industries[self.indyRef].type]
         except KeyError as e:
-            #print e
+            print e
             return (255,127,0)
         except IndexError as e:
-            #print e
+            print e
             return (0,0,0)
 
     def getOwnerColour(self):
