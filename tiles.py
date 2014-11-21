@@ -47,12 +47,27 @@ class Tile(object):
 
     def getIndyColour(self):
         return tuple(x+self.height*20 for x in ClearTile.colour)
+    
+    def getOwnerColour(self):
+        return (0x45,0x71,0x0e) #TODO get colour
 
 
 class TileWithOwner(Tile):
     def handle_MAPO(self,value):
         self.owner = value & 0b11111 #Only the lower 5 bytes seem to be used
 	#XXX compay_type.h enum owner seems to have this data
+    
+    def getOwnerColour(self):
+        if self.owner == 0x0F: #TOWN
+            return (0x79,0x00,0x11)
+        elif self.owner == 0x10 or self.owner is None: #None - Ground
+            return (0x45,0x71,0x0e)
+        elif self.owner == 0x11: #None - Water
+            return (0x3c,0x59,0xa2)
+        elif self.owner == 0x12: #Script/Superuser
+            return (255,0,255) #TODO get colour
+        else:
+            return self.gameMap.players[self.owner].getColour()
 
 
 class ClearTile(TileWithOwner):
@@ -95,6 +110,9 @@ class IndyTile(Tile):
         except IndexError as e:
             #print e
             return (0,0,0)
+
+    def getOwnerColour(self):
+        return (0x62,0x65,0x62)
 
 class TunnelTile(Tile):
     colour = (0xFF,0x77,0x00)

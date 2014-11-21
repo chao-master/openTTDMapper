@@ -40,7 +40,8 @@ class Industry(object):
 
 class Player(object):
     #TODO More Parsing
-    def __init__(self,infoString):
+    def __init__(self,infoString,gameMap):
+        self.gameMap = gameMap
         sl1 = ord(infoString[6])
         sl2 = ord(infoString[13+sl1])
         start = 14+sl1+sl2
@@ -199,22 +200,14 @@ class OpenTTDFileParser(object):
                 self.industries.append(Industry(infoString))
     
     def _parse_PLYR(self,block,payload):
-        self.players = [Player(p) for p in payload]
+        self.players = [Player(p,self) for p in payload]
 
 if __name__ == "__main__":
     f = OpenTTDFileParser(sys.argv[1])
 
-    def getCol(n):
-        if not n in colStore:
-            i = len(colStore)
-            colStore[n] = tuple([ int(z*255) for z in colorsys.hsv_to_rgb((0.618033988749895 * i) % 1,0.8,0.8)])
-            pixOwner[n%32,h+2+(n/32)] = colStore[n]
-        return colStore[n]
-    
-    colStore = {0x10:(255,255,255),0x11:(255,255,255)} #Both 0x10 and 0x11 seem to refer to unown land, the later being unowned water
     w,h=f.size
     imgTiles = Image.new("RGB",(h,w))
-    imgOwner = Image.new("RGB",(h,w+10))
+    imgOwner = Image.new("RGB",(h,w))
     imgIndy  = Image.new("RGB",(h,w))
     pixTiles = imgTiles.load()
     pixOwner = imgOwner.load()
@@ -223,9 +216,7 @@ if __name__ == "__main__":
     for x in xrange(w):
         for y in xrange(h):
             pixTiles[y,x] = f.mapTiles[x][y].colourWithHeight()
-            owner = f.mapTiles[x][y].owner
-            if not owner is None:
-                pixOwner[y,x] = getCol(owner)
+            pixOwner[y,x] = f.mapTiles[x][y].getOwnerColour()
             pixIndy[y,x] = f.mapTiles[x][y].getIndyColour()
             if isinstance(f.mapTiles[x][y],IndyTile):
                 c+=1
